@@ -1,14 +1,12 @@
 const db = require('../config/database');
 
-// Helper function untuk validasi tanggal
+
 const isValidDate = (dateString) => {
   const date = new Date(dateString);
   return date instanceof Date && !isNaN(date);
 };
 
-// @desc    Create new book
-// @route   POST /api/books
-// @access  Public
+
 exports.createBook = async (req, res) => {
   const { book_name, description, author, published_date } = req.body;
 
