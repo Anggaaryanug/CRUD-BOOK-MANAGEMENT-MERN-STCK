@@ -13,7 +13,7 @@ exports.createBook = async (req, res) => {
   const { book_name, description, author, published_date } = req.body;
 
   try {
-    // Validasi required fields
+    
     if (!book_name || !author || !published_date) {
       return res.status(400).json({ 
         success: false, 
@@ -21,7 +21,7 @@ exports.createBook = async (req, res) => {
       });
     }
 
-    // Validasi panjang book_name
+   
     if (book_name.length > 150) {
       return res.status(400).json({ 
         success: false, 
@@ -29,7 +29,7 @@ exports.createBook = async (req, res) => {
       });
     }
 
-    // Validasi panjang author
+    
     if (author.length > 150) {
       return res.status(400).json({ 
         success: false, 
@@ -37,7 +37,7 @@ exports.createBook = async (req, res) => {
       });
     }
 
-    // Validasi format tanggal
+
     if (!isValidDate(published_date)) {
       return res.status(400).json({ 
         success: false, 
@@ -45,7 +45,7 @@ exports.createBook = async (req, res) => {
       });
     }
 
-    // Insert ke database
+    
     const query = `
       INSERT INTO books (book_name, description, author, published_date) 
       VALUES (?, ?, ?, ?)
@@ -58,7 +58,7 @@ exports.createBook = async (req, res) => {
       published_date
     ]);
 
-    // Get data yang baru diinsert
+ 
     const [newBook] = await db.execute(
       'SELECT * FROM books WHERE id = ?',
       [result.insertId]
@@ -71,7 +71,7 @@ exports.createBook = async (req, res) => {
     });
 
   } catch (error) {
-    // Handle duplicate entry error
+   
     if (error.code === 'ER_DUP_ENTRY') {
       return res.status(400).json({ 
         success: false, 
@@ -87,9 +87,7 @@ exports.createBook = async (req, res) => {
   }
 };
 
-// @desc    Get all books with pagination and search
-// @route   GET /api/books
-// @access  Public
+
 exports.getAllBooks = async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 4;
@@ -102,7 +100,7 @@ exports.getAllBooks = async (req, res) => {
     let queryParams = [];
     let countParams = [];
 
-    // Search berdasarkan book_name atau description
+    
     if (search) {
       query += ' WHERE book_name LIKE ? OR description LIKE ?';
       countQuery += ' WHERE book_name LIKE ? OR description LIKE ?';
@@ -111,14 +109,14 @@ exports.getAllBooks = async (req, res) => {
       countParams = [searchPattern, searchPattern];
     }
 
-    // Order by newest first
+
     query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
     queryParams.push(limit, offset);
 
-    // Get books
+
     const [books] = await db.execute(query, queryParams);
 
-    // Get total count
+
     const [countResult] = await db.execute(countQuery, countParams);
     const totalBooks = countResult[0].total;
 
@@ -142,9 +140,6 @@ exports.getAllBooks = async (req, res) => {
   }
 };
 
-// @desc    Get single book by ID
-// @route   GET /api/books/:id
-// @access  Public
 exports.getBookById = async (req, res) => {
   const { id } = req.params;
 
@@ -175,15 +170,13 @@ exports.getBookById = async (req, res) => {
   }
 };
 
-// @desc    Update book description
-// @route   PUT /api/books/:id
-// @access  Public
+
 exports.updateBook = async (req, res) => {
   const { id } = req.params;
   const { description } = req.body;
 
   try {
-    // Validasi description
+    
     if (description === undefined) {
       return res.status(400).json({ 
         success: false, 
@@ -191,7 +184,7 @@ exports.updateBook = async (req, res) => {
       });
     }
 
-    // Cek apakah buku ada
+  
     const [existingBook] = await db.execute(
       'SELECT * FROM books WHERE id = ?',
       [id]
@@ -204,13 +197,12 @@ exports.updateBook = async (req, res) => {
       });
     }
 
-    // Update description
     await db.execute(
       'UPDATE books SET description = ? WHERE id = ?',
       [description, id]
     );
 
-    // Get updated book
+   
     const [updatedBook] = await db.execute(
       'SELECT * FROM books WHERE id = ?',
       [id]
@@ -231,9 +223,7 @@ exports.updateBook = async (req, res) => {
   }
 };
 
-// @desc    Delete book
-// @route   DELETE /api/books/:id
-// @access  Public
+
 exports.deleteBook = async (req, res) => {
   const { id } = req.params;
 
@@ -269,9 +259,7 @@ exports.deleteBook = async (req, res) => {
   }
 };
 
-// @desc    Search books by book_name and/or description
-// @route   GET /api/books/search
-// @access  Public
+
 exports.searchBooks = async (req, res) => {
   const { book_name, description } = req.query;
 
@@ -279,13 +267,13 @@ exports.searchBooks = async (req, res) => {
     let query = 'SELECT * FROM books WHERE 1=1';
     let queryParams = [];
 
-    // Filter berdasarkan book_name
+   
     if (book_name) {
       query += ' AND book_name LIKE ?';
       queryParams.push(`%${book_name}%`);
     }
 
-    // Filter berdasarkan description
+ 
     if (description) {
       query += ' AND description LIKE ?';
       queryParams.push(`%${description}%`);
