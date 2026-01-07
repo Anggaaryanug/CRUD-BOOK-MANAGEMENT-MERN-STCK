@@ -7,6 +7,38 @@ const isValidDate = (dateString) => {
 };
 
 
+
+async function generateUniqueBookId(bookName, db) {
+  
+  const cleanName = bookName
+    .replace(/[^a-zA-Z0-9]/g, '') // hapus semua kecuali huruf dan angka
+    .toUpperCase(); // ubah ke uppercase
+  
+  
+  const prefix = cleanName.substring(0, 3);
+  
+ 
+  const finalPrefix = prefix.padEnd(3, 'X');
+
+
+  const [existing] = await db.execute(
+    'SELECT id FROM books WHERE id LIKE ? ORDER BY id DESC LIMIT 1',
+    [`${finalPrefix}%`]
+  );
+
+  let counter = 1;
+  
+  if (existing.length > 0) {
+    // Ambil angka dari ID terakhir
+    const lastId = existing[0].id;
+    const lastNumber = parseInt(lastId.replace(finalPrefix, '')) || 0;
+    counter = lastNumber + 1;
+  }
+
+  return `${finalPrefix}${counter}`;
+}
+
+
 exports.createBook = async (req, res) => {
   const { book_name, description, author, published_date } = req.body;
 
@@ -19,7 +51,6 @@ exports.createBook = async (req, res) => {
       });
     }
 
-   
     if (book_name.length > 150) {
       return res.status(400).json({ 
         success: false, 
@@ -27,14 +58,12 @@ exports.createBook = async (req, res) => {
       });
     }
 
-    
     if (author.length > 150) {
       return res.status(400).json({ 
         success: false, 
         message: 'author maksimal 150 karakter' 
       });
     }
-
 
     if (!isValidDate(published_date)) {
       return res.status(400).json({ 
@@ -44,22 +73,24 @@ exports.createBook = async (req, res) => {
     }
 
     
+    const bookId = await generateUniqueBookId(book_name, db);
+
     const query = `
-      INSERT INTO books (book_name, description, author, published_date) 
-      VALUES (?, ?, ?, ?)
+      INSERT INTO books (id, book_name, description, author, published_date) 
+      VALUES (?, ?, ?, ?, ?)
     `;
     
-    const [result] = await db.execute(query, [
+    await db.execute(query, [
+      bookId,
       book_name,
       description || '',
       author,
       published_date
     ]);
 
- 
     const [newBook] = await db.execute(
       'SELECT * FROM books WHERE id = ?',
-      [result.insertId]
+      [bookId]
     );
 
     res.status(201).json({ 
@@ -69,7 +100,6 @@ exports.createBook = async (req, res) => {
     });
 
   } catch (error) {
-   
     if (error.code === 'ER_DUP_ENTRY') {
       return res.status(400).json({ 
         success: false, 
@@ -84,6 +114,9 @@ exports.createBook = async (req, res) => {
     });
   }
 };
+
+
+
 
 
 exports.getAllBooks = async (req, res) => {
